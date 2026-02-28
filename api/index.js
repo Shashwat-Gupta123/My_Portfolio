@@ -12,7 +12,8 @@ function getCodeforcesRating(handle) {
       hostname: 'codeforces.com',
       path: `/api/user.info?handles=${handle}`,
       method: 'GET',
-      headers: { 'User-Agent': 'Mozilla/5.0' }
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+      timeout: 5000
     };
     const req = https.request(options, (res) => {
       let data = '';
@@ -1595,12 +1596,14 @@ window.addEventListener('scroll', () => {
 
 app.get(['/', '/index.html'], async (req, res) => {
   try {
+    console.log('Fetching stats for', req.url);
     const [cf, lc] = await Promise.all([
       getCodeforcesRating('Skg_dynamic'),
       getLeetCodeStats('skg_dynamic')
     ]);
     res.send(generateHTML(cf, lc));
   } catch (e) {
+    console.error('Deployment Error in route handler:', e);
     res.send(generateHTML(
       { rating: '', maxRating: '', rank: '' },
       { total: '', easy: '', medium: '', hard: '', ranking: '' }
