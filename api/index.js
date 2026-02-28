@@ -1,9 +1,9 @@
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
+const express = require('express');
 const https = require('https');
+const path = require('path');
 
-const PORT = 3000;
+const app = express();
+const PORT = process.env.PORT || 3000;
 
 // Fetch Codeforces rating live
 function getCodeforcesRating(handle) {
@@ -1593,40 +1593,38 @@ window.addEventListener('scroll', () => {
 </html>`;
 }
 
-const server = http.createServer(async (req, res) => {
-  if (req.url === '/' || req.url === '/index.html') {
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-    try {
-      const [cf, lc] = await Promise.all([
-        getCodeforcesRating('Skg_dynamic'),
-        getLeetCodeStats('skg_dynamic')
-      ]);
-      res.end(generateHTML(cf, lc));
-    } catch (e) {
-      res.end(generateHTML(
-        { rating: '', maxRating: '', rank: '' },
-        { total: '', easy: '', medium: '', hard: '', ranking: '' }
-      ));
-    }
-  } else if (req.url === '/favicon.ico') {
-    res.writeHead(204);
-    res.end();
-  } else {
-    res.writeHead(404);
-    res.end('Not found');
+app.get(['/', '/index.html'], async (req, res) => {
+  try {
+    const [cf, lc] = await Promise.all([
+      getCodeforcesRating('Skg_dynamic'),
+      getLeetCodeStats('skg_dynamic')
+    ]);
+    res.send(generateHTML(cf, lc));
+  } catch (e) {
+    res.send(generateHTML(
+      { rating: '', maxRating: '', rank: '' },
+      { total: '', easy: '', medium: '', hard: '', ranking: '' }
+    ));
   }
+});
+
+app.get('/favicon.ico', (req, res) => {
+  res.status(204).end();
+});
+
+// Handle 404
+app.use((req, res) => {
+  res.status(404).send('Not found');
 });
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
-server.listen(PORT, () => {
-  console.log(`\n Portfolio running at: http://localhost:${PORT}\n`);
-  console.log('   Neural network background: ');
-  console.log('   Live Codeforces rating: ');
-  console.log('   Live LeetCode stats: ');
-  console.log('   Midnight black + electric blue theme: \n');
-}).on('error', (err) => {
-  console.error('Server error:', err);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`\n Portfolio running at: http://localhost:${PORT}\n`);
+  });
+}
+
+module.exports = app;
